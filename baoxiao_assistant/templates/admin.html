@@ -1,0 +1,96 @@
+{% from 'nav_macro.html' import nav %}
+<!doctype html>
+<html><head><meta charset="utf-8"><title>行政专员 · 制度维护</title>
+<style>
+  body{margin:0;font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:#f4f7f5;color:#222}
+  .wrap{max-width:1000px;margin:28px auto;padding:0 20px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .card{background:#fff;border-radius:14px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,.05)}
+  .card h3{margin:0 0 14px;color:#2E8B57;font-size:16px}
+  textarea{width:100%;height:320px;padding:12px;border:1px solid #ddd;border-radius:8px;font-family:Consolas,monospace;font-size:13px;box-sizing:border-box}
+  button{background:#2E8B57;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;margin-top:10px}
+  button.danger{background:#b03a2e}
+  button.ghost{background:#fff;color:#2E8B57;border:1px solid #2E8B57}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #eef2ee}
+  th{color:#666;font-weight:500;background:#f8faf8}
+  .empty{color:#999;font-size:13px;padding:12px}
+  .ok{background:#d4edda;color:#155724;padding:8px;border-radius:6px;font-size:13px;margin-top:8px}
+</style></head><body>
+{{ nav('admin', user) }}
+<div class="wrap">
+  <div class="card" style="margin-bottom:20px">
+    <h3>📚 当前制度文档（AI 预审即基于此）</h3>
+    {% if docs %}
+    <table>
+      <tr><th>ID</th><th>标题</th><th>关键词</th><th>版本</th><th>最后更新</th><th>操作</th></tr>
+      {% for d in docs %}
+      <tr>
+        <td>{{ d.id }}</td>
+        <td>{{ d.title }}</td>
+        <td>{{ d.keywords or '' }}</td>
+        <td>v{{ d.version }}</td>
+        <td>{{ d.updated_at.strftime('%Y-%m-%d %H:%M') if d.updated_at else '' }}</td>
+        <td><a class="btn ghost" href="#" onclick="loadDoc({{ d.id }});return false;">编辑</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <div class="empty">暂无制度文档，请先在右侧填写并保存。</div>
+    {% endif %}
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>✏️ 维护 / 新建制度</h3>
+      <label style="font-size:13px;color:#666">标题</label>
+      <input id="title" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin:6px 0 12px;font-size:13px" placeholder="例如：差旅报销管理办法">
+      <label style="font-size:13px;color:#666">关键词（逗号分隔，用于检索匹配）</label>
+      <input id="kw" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin:6px 0 12px;font-size:13px" placeholder="差旅,住宿,机票,交通,标准">
+      <label style="font-size:13px;color:#666">正文（Markdown / 纯文本）</label>
+      <textarea id="content" placeholder="把完整制度内容粘贴在这里..."></textarea>
+      <div style="display:flex;gap:10px">
+        <button onclick="saveDoc()">💾 保存并重建索引</button>
+        <button class="ghost" onclick="clearForm()">🗑 清空</button>
+      </div>
+      <div id="msg"></div>
+    </div>
+    <div class="card">
+      <h3>🔎 快速预览检索效果</h3>
+      <input id="q" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:10px" placeholder="例如：出差住宿标准是多少？">
+      <button class="ghost" onclick="preview()">🔍 试检索</button>
+      <pre id="pv" style="background:#f8faf8;padding:14px;border-radius:8px;font-size:13px;margin-top:12px;white-space:pre-wrap;line-height:1.7"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+let editingId=null;
+async function saveDoc(){
+  const data={
+    title: title.value.trim(),
+    keywords: kw.value.trim(),
+    content: content.value.trim(),
+  };
+  if(!data.title||!data.content){ alert('标题和正文不能为空'); return; }
+  const url=editingId ? `/api/admin/policy/${editingId}` : '/api/admin/policy';
+  const method=editingId ? 'PUT' : 'POST';
+  const res=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(x=>x.json());
+  msg.innerHTML=`<div class="ok">✅ ${res.msg}（索引重建耗时 ${res.rebuild_ms||0}ms）</div>`;
+  setTimeout(()=>location.reload(),1200);
+}
+async function loadDoc(id){
+  const res=await fetch('/api/admin/policy/'+id).then(x=>x.json());
+  editingId=id; title.value=res.title; kw.value=res.keywords||''; content.value=res.content;
+  window.scrollTo(0,9999);
+}
+function clearForm(){ editingId=null; title.value=''; kw.value=''; content.value=''; msg.innerHTML=''; }
+async function preview(){
+  const res=await fetch('/api/policy/query',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({query:q.value})
+  }).then(x=>x.json());
+  pv.textContent=res.answer;
+}
+</script>
+</body></html>

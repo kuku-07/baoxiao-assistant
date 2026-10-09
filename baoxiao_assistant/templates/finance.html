@@ -1,0 +1,122 @@
+{% from 'nav_macro.html' import nav %}
+<!doctype html>
+<html><head><meta charset="utf-8"><title>财务专员 · 报销工作台</title>
+<style>
+  body{margin:0;font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:#f4f7f5;color:#222}
+  .wrap{max-width:1100px;margin:28px auto;padding:0 20px}
+  .card{background:#fff;border-radius:14px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,.05);margin-bottom:20px}
+  .card h3{margin:0 0 14px;color:#2E8B57;font-size:16px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #eef2ee}
+  th{color:#666;font-weight:500;background:#f8faf8}
+  .tag{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px}
+  .tag-submitted{background:#fff3cd;color:#856404}
+  .tag-material_approved{background:#d4edda;color:#155724}
+  .tag-material_rejected{background:#f8d7da;color:#721c24}
+  .tag-finance_approved{background:#cce5ff;color:#004085}
+  .tag-finance_rejected{background:#f8d7da;color:#721c24}
+  .tag-paid{background:#d4edda;color:#155724;font-weight:600}
+  button{background:#2E8B57;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600}
+  button.danger{background:#b03a2e}
+  button.ghost{background:#fff;color:#2E8B57;border:1px solid #2E8B57}
+  .empty{color:#999;font-size:13px;padding:16px}
+  .filterbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .filterbar button{background:#e8f5ee;color:#2E8B57;border:1px solid #c5e1ce}
+  .filterbar button.active{background:#2E8B57;color:#fff}
+  .modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100}
+  .modal{background:#fff;border-radius:14px;width:620px;max-height:80vh;overflow-y:auto;padding:24px}
+  .modal h3{margin:0 0 10px;color:#2E8B57}
+  .modal pre{background:#f8faf8;padding:12px;border-radius:8px;font-size:13px;white-space:pre-wrap;line-height:1.7;margin:8px 0}
+  .modal textarea{width:100%;height:70px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-top:10px;box-sizing:border-box}
+  .modal .btns{display:flex;gap:10px;margin-top:14px}
+</style></head><body>
+{{ nav('finance', user) }}
+<div class="wrap">
+  <div class="card">
+    <h3>💰 待审核 / 已处理报销单</h3>
+    <div class="filterbar" id="fbar">
+      <button class="active" data-s="">全部</button>
+      <button data-s="submitted">待 AI 预审</button>
+      <button data-s="material_approved">AI 通过待财务核对</button>
+      <button data-s="finance_approved">财务已过</button>
+      <button data-s="paid">已打款</button>
+      <button data-s="material_rejected,finance_rejected">已打回</button>
+    </div>
+    {% if reimbursements %}
+    <table>
+      <tr><th>单号</th><th>提交人</th><th>类别</th><th>金额(元)</th><th>AI 预审</th><th>状态</th><th>提交时间</th><th>操作</th></tr>
+      {% for r in reimbursements %}
+      <tr data-status="{{ r.status.value }}">
+        <td><code>{{ r.tracking_no }}</code></td>
+        <td>{{ r.submitter.display_name }}</td>
+        <td>{{ r.category }}</td>
+        <td>{{ "%.0f"|format(r.amount/100) }}</td>
+        <td style="color:{{ '#2E8B57' if r.pre_check_passed else '#b03a2e' }}">
+          {{ '✅通过' if r.pre_check_passed else '❌未通过' }}</td>
+        <td><span class="tag tag-{{ r.status.value }}">{{ status_map.get(r.status.value, ('?',''))[0] }}</span></td>
+        <td>{{ r.created_at.strftime('%m-%d %H:%M') }}</td>
+        <td>
+          <button onclick="openDetail('{{ r.tracking_no }}')">查看/核对</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <div class="empty">暂无报销单</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="modal-mask" id="mask">
+  <div class="modal">
+    <h3 id="mtitle">单据详情</h3>
+    <div id="mbody"></div>
+    <textarea id="comment" placeholder="填写核对意见（必填，员工可见）"></textarea>
+    <div class="btns">
+      <button onclick="act('finance_approved')">✅ 财务核对通过</button>
+      <button onclick="act('finance_rejected')" class="danger">❌ 核对不通过，打回</button>
+      <button onclick="act('paid')" class="ghost">💵 标记已打款</button>
+      <button onclick="closeMask()" class="ghost">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentNo=null;
+const mask=document.getElementById('mask');
+async function openDetail(tno){
+  currentNo=tno; mask.style.display='flex';
+  const res=await fetch('/api/reimburse/'+tno).then(x=>x.json());
+  mtitle.textContent='单号 '+tno+' · '+res.category+' · '+res.amount_yuan+' 元';
+  mbody.innerHTML=res.answer.split('\n').map(l=>'<pre>'+l+'</pre>').join('')+
+    '<div style="margin-top:8px;color:#666">💬 时间线：</div>'+
+    res.logs.map(l=>`<div style="font-size:12px;color:#666;margin-top:6px">${l.time} · <b>${l.action}</b></div><pre>${l.comment}</pre>`).join('');
+}
+function closeMask(){ mask.style.display='none'; currentNo=null; }
+async function act(newStatus){
+  if(!currentNo) return;
+  const c=comment.value.trim();
+  if(!c){ alert('请填核对意见'); return; }
+  const res=await fetch('/api/finance/approve',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({tracking_no:currentNo,new_status:newStatus,comment:c})
+  }).then(x=>x.json());
+  alert(res.msg||res.error);
+  closeMask(); location.reload();
+}
+
+// 过滤
+document.querySelectorAll('#fbar button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('#fbar button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    const s=b.dataset.s;
+    document.querySelectorAll('tr[data-status]').forEach(tr=>{
+      if(!s){ tr.style.display=''; return; }
+      const arr=s.split(',');
+      tr.style.display=arr.includes(tr.dataset.status)?'':'none';
+    });
+  };
+});
+</script>
+</body></html>

@@ -1,0 +1,16 @@
+{% macro nav(active, user) %}
+<nav style="background:#2E8B57;color:#fff;padding:14px 32px;display:flex;align-items:center;gap:24px;">
+  <span style="font-weight:700;font-size:18px">🌾 青禾报销助手</span>
+  {% if user.role.value == 'employee' %}
+  <a href="/employee" style="color:#fff;text-decoration:none{% if active=='home' %};border-bottom:2px solid #fff{% endif %}">🏠 工作台</a>
+  <a href="/chat/policy" style="color:#fff;text-decoration:none{% if active=='chat' %};border-bottom:2px solid #fff{% endif %}">📖 查制度</a>
+  <a href="/reimburse/new" style="color:#fff;text-decoration:none{% if active=='form' %};border-bottom:2px solid #fff{% endif %}">📝 发起报销</a>
+  {% elif user.role.value == 'admin' %}
+  <a href="/admin" style="color:#fff;text-decoration:none{% if active=='admin' %};border-bottom:2px solid #fff{% endif %}">⚙️ 制度维护</a>
+  {% elif user.role.value == 'finance' %}
+  <a href="/finance" style="color:#fff;text-decoration:none{% if active=='finance' %};border-bottom:2px solid #fff{% endif %}">💰 财务工作台</a>
+  {% endif %}
+  <span style="margin-left:auto;font-size:13px">👤 {{ user.display_name }}</span>
+  <a href="/logout" style="color:#fff;text-decoration:none;font-size:13px">🚪 退出</a>
+</nav>
+{% endmacro %}

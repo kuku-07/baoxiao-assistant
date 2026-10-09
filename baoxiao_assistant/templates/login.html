@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>青禾报销助手_qxy · 登录</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+    background:linear-gradient(135deg,#2E8B57 0%,#3CB371 50%,#98FB98 100%);
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    color:#222}
+  .card{background:#fff;border-radius:16px;padding:48px 40px;width:400px;
+    box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  h1{margin:0 0 4px;font-size:22px;color:#2E8B57}
+  h2{margin:0 0 24px;font-size:14px;color:#888;font-weight:400}
+  label{display:block;margin:16px 0 6px;font-size:13px;color:#555}
+  input[type=text]{width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;
+    font-size:14px;outline:none}
+  input[type=text]:focus{border-color:#2E8B57}
+  button{width:100%;padding:12px;background:#2E8B57;color:#fff;border:none;border-radius:8px;
+    font-size:15px;cursor:pointer;margin-top:20px}
+  button:hover{background:#247152}
+  .hint{margin-top:22px;padding:14px;background:#f5faf7;border-radius:8px;
+    font-size:12px;color:#555;line-height:1.8}
+  .hint code{background:#e7f4ec;padding:2px 6px;border-radius:4px;color:#2E8B57}
+  .logo{width:48px;height:48px;background:#2E8B57;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;color:#fff;
+    font-weight:700;font-size:22px;margin-bottom:16px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">🌾</div>
+    <h1>青禾报销助手</h1>
+    <h2>QXY · 智能体 · 多角色报销协同平台</h2>
+
+    <form method="post" action="/login">
+      <label>请输入你的角色账号</label>
+      <input type="text" name="username" placeholder="xiaolin / qiaoje / zhoumin"
+             value="xiaolin" required>
+      <button type="submit">进入工作台 →</button>
+    </form>
+
+    <div class="hint">
+      <b>🎭 三个预置角色</b><br>
+      · 员工 <code>xiaolin</code>：查制度 → 提交报销 → 查本人状态<br>
+      · 行政 <code>qiaoje</code>：维护差旅/招待/采购等制度文档<br>
+      · 财务 <code>zhoumin</code>：核对业务事实、审核报销单
+    </div>
+  </div>
+</body>
+</html>

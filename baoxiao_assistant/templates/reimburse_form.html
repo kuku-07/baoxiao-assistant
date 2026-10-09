@@ -1,0 +1,75 @@
+{% from 'nav_macro.html' import nav %}
+<!doctype html>
+<html><head><meta charset="utf-8"><title>发起报销</title>
+<style>
+  body{margin:0;font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:#f4f7f5;color:#222}
+  .wrap{max-width:860px;margin:28px auto;padding:0 20px}
+  .card{background:#fff;border-radius:14px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,.05)}
+  h2{margin:0 0 6px;color:#2E8B57}
+  .tip{background:#fff8e1;border-left:4px solid #fbc02d;padding:10px 14px;border-radius:6px;font-size:13px;color:#795548;margin-bottom:18px}
+  label{display:block;margin:14px 0 6px;font-size:14px;color:#444;font-weight:600}
+  input,select,textarea{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box}
+  textarea{height:80px;resize:vertical}
+  .row{display:flex;gap:14px}
+  .row>div{flex:1}
+  button{background:#2E8B57;color:#fff;border:none;padding:12px 22px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;margin-top:16px}
+  button:disabled{background:#aaa}
+  .preview{margin-top:14px;padding:14px;background:#f0f6f1;border-radius:8px;font-size:13px;line-height:1.7;white-space:pre-wrap}
+  .preview.err{background:#fdecea;color:#a93226}
+  .preview.ok{background:#d4edda;color:#155724}
+</style></head><body>
+{{ nav('form', user) }}
+<div class="wrap">
+  <div class="card">
+    <h2>📝 发起报销</h2>
+    <p style="color:#666;font-size:13px">填完后点击「🤖 AI 预审并提交」——系统会根据制度自动初审，并把结果展示给你。</p>
+    <div class="tip">💡 小贴士：提交前最好先去 <a href="/chat/policy" style="color:#2E8B57">查制度</a> 确认需要什么材料～</div>
+
+    <div class="row">
+      <div>
+        <label>报销类别</label>
+        <select id="cat">
+          <option value="差旅费">差旅费</option>
+          <option value="招待费">招待费</option>
+          <option value="采购费">采购费</option>
+        </select>
+      </div>
+      <div>
+        <label>金额（元）</label>
+        <input id="amt" type="number" min="0" step="1" placeholder="例如 1800">
+      </div>
+    </div>
+
+    <label>事由 / 用途</label>
+    <textarea id="reason" placeholder="简要说明出差地点、客户、采购用途等..."></textarea>
+
+    <label>附件描述（选填）</label>
+    <textarea id="materials" placeholder="例如：机票电子行程单 + 上海酒店增值税专用发票 + 携程订单截图"></textarea>
+
+    <button id="sub">🤖 AI 预审并提交</button>
+    <div id="pv" class="preview" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+const sub=document.getElementById('sub'), pv=document.getElementById('pv');
+sub.onclick=async ()=>{
+  const data={
+    category: cat.value,
+    amount: Math.round(parseFloat(amt.value||0)*100),
+    reason: reason.value.trim(),
+    materials: materials.value.trim(),
+  };
+  if(!data.amount || !data.reason){ alert('请至少填金额和事由'); return; }
+  sub.disabled=true; sub.textContent='预审中...';
+  const res=await fetch('/api/reimburse/submit',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(data)
+  }).then(x=>x.json());
+  pv.style.display='block';
+  pv.className='preview '+(res.status==='material_approved'?'ok':'err');
+  pv.innerHTML=res.answer.replace(/\n/g,'<br>');
+  sub.disabled=false; sub.textContent='🤖 AI 预审并提交';
+};
+</script>
+</body></html>
